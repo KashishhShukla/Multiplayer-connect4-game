@@ -2,6 +2,10 @@
 
 Connect Sync is a high-performance, real-time multiplayer Connect Four platform featuring competitive matchmaking queues, live in-game chatting, database persistence, and a reconnection-tolerant game loop.
 
+# Live Project
+- 🎮 **Frontend:** [Connect Sync](https://multiplayer-connect4-game.vercel.app)
+- ⚙️ **Backend API:** [Render Server](https://multiplayer-connect4-game.onrender.com)
+
 ---
 
 ## Technical Highlights
