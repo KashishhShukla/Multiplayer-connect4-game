@@ -207,7 +207,7 @@ export default function App() {
   }, [messages]);
 
   // Handle Form Registration
-  const handleRegister = async (e) => {
+  
     e.preventDefault();
     if (!registerInput || registerInput.trim().length < 3) {
       return setErrorMessage('Username must be at least 3 characters.');
@@ -226,7 +226,7 @@ export default function App() {
         setUserProfile(profile);
         setUsername(profile.username);
         localStorage.setItem('connectSyncUsername', profile.username);
-        
+        console.log("Saved username:", profile.username);
         // Connect to Socket
         socket.emit('join_queue', { username: profile.username });
         setScreen('queue');
@@ -262,7 +262,7 @@ export default function App() {
     if (gameWinner || gameEndedReason) {
       console.log("Game already ended");
       return;
-    }
+    }const handleRegister = async (e) => {
 
     if (turn !== username) {
       console.log("Not your turn");
