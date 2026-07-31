@@ -254,30 +254,29 @@ export default function App() {
 
   // Handle Game Cell Click (Drop Chip)
   const handleCellClick = (colIndex) => {
-   const handleCellClick = (colIndex) => {
-  console.log("CELL CLICKED:", colIndex);
-  console.log("Turn:", turn);
-  console.log("Username:", username);
-  console.log("Socket connected:", socket?.connected);
+    console.log("CELL CLICKED:", colIndex);
+    console.log("Turn:", turn);
+    console.log("Username:", username);
+    console.log("Socket connected:", socket?.connected);
 
-  if (gameWinner || gameEndedReason) {
-    console.log("Game already ended");
-    return;
-  }
+    if (gameWinner || gameEndedReason) {
+      console.log("Game already ended");
+      return;
+    }
 
-  if (turn !== username) {
-    console.log("Not your turn");
-    return;
-  }
+    if (turn !== username) {
+      console.log("Not your turn");
+      return;
+    }
 
-  if (opponentOffline) {
-    console.log("Opponent is offline");
-    return;
-  }
+    if (opponentOffline) {
+      console.log("Opponent is offline");
+      return;
+    }
 
-  console.log("Sending make_move");
-  socket.emit("make_move", { col: colIndex });
-};
+    console.log("Sending make_move");
+    socket.emit("make_move", { col: colIndex });
+  };
 
   // Handle Chat message sending
   const handleSendMessage = (e) => {
