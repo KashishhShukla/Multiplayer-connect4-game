@@ -374,18 +374,15 @@ h1, h2, h3, h4 {
   background: #090d16; /* Represents empty slot */
   box-shadow: inset 0 4px 6px rgba(0,0,0,0.6);
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
 /* Game Pieces */
 .game-piece {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  z-index: 5;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    z-index: 20;
 }
 
 .piece-red {

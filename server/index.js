@@ -9,13 +9,12 @@ import store from './store.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+const server = createServer(app);
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
-
 const io = new Server(server, {
   cors: {
     origin(origin, callback) {
