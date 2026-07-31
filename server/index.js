@@ -166,6 +166,7 @@ io.on('connection', (socket) => {
 
   // 3. Process move
   socket.on('make_move', async ({ col }) => {
+    console.log("MOVE RECEIVED:", socket.id, col);
     const session = await store.getPlayerSession(socket.id);
     if (!session || !session.roomId) return;
 
