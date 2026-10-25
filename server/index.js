@@ -1,8 +1,17 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { initDb, getOrCreateUser, getLeaderboard, recordMatchResult } from './db.js';
+import { 
+  initDb, 
+  getOrCreateUser, 
+  getLeaderboard, 
+  recordMatchResult, 
+  getRecentMatches, 
+  getUserProfile, 
+  getDbStatus 
+} from './db.js';
 import { createBoard, makeMove, checkWin, checkDraw } from './gameLogic.js';
 import store from './store.js';
 
@@ -32,7 +41,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize database
+// Initialize PostgreSQL database
 await initDb();
 
 // HTTP REST API Endpoints
@@ -53,6 +62,37 @@ app.post('/api/register', async (req, res) => {
   try {
     const user = await getOrCreateUser(username);
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get recent match history
+app.get('/api/matches', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const matches = await getRecentMatches(limit);
+    res.json(matches);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get player profile and their recent games
+app.get('/api/user/:username', async (req, res) => {
+  try {
+    const profile = await getUserProfile(req.params.username);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Database diagnostics and status
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const status = await getDbStatus();
+    res.json(status);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -206,8 +246,8 @@ io.on('connection', (socket) => {
       room.winner = session.username;
       await store.setRoom(room.id, room);
 
-      // Record match result in SQL DB
-      const result = await recordMatchResult(room.playerRed, room.playerYellow, room.winner);
+      // Record match result in PostgreSQL DB
+      const result = await recordMatchResult(room.playerRed, room.playerYellow, room.winner, room.moves ? room.moves.length : 0);
 
       io.to(room.id).emit('game_ended', {
         board: room.board,
@@ -227,7 +267,7 @@ io.on('connection', (socket) => {
       room.winner = null;
       await store.setRoom(room.id, room);
 
-      const result = await recordMatchResult(room.playerRed, room.playerYellow, 'draw');
+      const result = await recordMatchResult(room.playerRed, room.playerYellow, 'draw', room.moves ? room.moves.length : 0);
 
       io.to(room.id).emit('game_ended', {
         board: room.board,
@@ -277,7 +317,7 @@ io.on('connection', (socket) => {
     room.winner = opponent;
     await store.setRoom(room.id, room);
 
-    const result = await recordMatchResult(room.playerRed, room.playerYellow, opponent);
+    const result = await recordMatchResult(room.playerRed, room.playerYellow, opponent, room.moves ? room.moves.length : 0);
 
     io.to(room.id).emit('game_ended', {
       board: room.board,
@@ -357,7 +397,7 @@ io.on('connection', (socket) => {
               currentRoom.winner = opponent;
               await store.setRoom(session.roomId, currentRoom);
 
-              const result = await recordMatchResult(currentRoom.playerRed, currentRoom.playerYellow, opponent);
+              const result = await recordMatchResult(currentRoom.playerRed, currentRoom.playerYellow, opponent, currentRoom.moves ? currentRoom.moves.length : 0);
 
               io.to(session.roomId).emit('game_ended', {
                 board: currentRoom.board,

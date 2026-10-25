@@ -11,7 +11,10 @@ import {
   Check, 
   Sparkles, 
   Gamepad2, 
-  ShieldAlert 
+  ShieldAlert,
+  Database,
+  History,
+  Award
 } from 'lucide-react';
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -24,6 +27,9 @@ export default function App() {
   const [username, setUsername] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [dbInfo, setDbInfo] = useState(null);
+  const [lobbyTab, setLobbyTab] = useState("leaderboard"); // "leaderboard" | "matches"
   const [errorMessage, setErrorMessage] = useState("");
   const [registerInput, setRegisterInput] = useState("");
 
@@ -70,16 +76,31 @@ export default function App() {
     };
   }, []);
 
-  // Fetch initial leaderboard
+  // Fetch initial leaderboard, match history, and database status
   const fetchLeaderboard = async () => {
     try {
+      // 1. Leaderboard
       const response = await fetch(`${SOCKET_SERVER_URL}/api/leaderboard`);
       if (response.ok) {
         const data = await response.json();
         setLeaderboard(data);
       }
+
+      // 2. Recent Match Records
+      const matchRes = await fetch(`${SOCKET_SERVER_URL}/api/matches?limit=10`);
+      if (matchRes.ok) {
+        const matchData = await matchRes.json();
+        setMatches(matchData);
+      }
+
+      // 3. Database Engine Status
+      const dbRes = await fetch(`${SOCKET_SERVER_URL}/api/db-status`);
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        setDbInfo(dbData);
+      }
     } catch (err) {
-      console.error("Error fetching leaderboard:", err);
+      console.error("Error fetching database records:", err);
     }
   };
 
@@ -432,38 +453,117 @@ export default function App() {
             </form>
           </div>
 
-          {/* Leaderboard Card */}
+          {/* Leaderboard & Database Records Card */}
           <div className="glass-card">
-            <h2 className="leaderboard-title">
-              <Trophy size={20} color="#eab308" />
-              Leaderboard
-            </h2>
-            <div className="leaderboard-list">
-              {leaderboard.length === 0 ? (
-                <p
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "20px 0",
-                  }}
-                >
-                  No players registered yet.
-                </p>
-              ) : (
-                leaderboard.map((player, idx) => (
-                  <div key={player.username} className="leaderboard-row">
-                    <span className="leaderboard-rank">{idx + 1}</span>
-                    <div className="leaderboard-name">
-                      <div>{player.username}</div>
-                      <div className="leaderboard-stats">
-                        W: {player.wins} | L: {player.losses} | D:{" "}
-                        {player.draws}
+            {/* Tab navigation */}
+            <div className="lobby-tab-bar">
+              <button
+                type="button"
+                className={`lobby-tab-btn ${lobbyTab === "leaderboard" ? "active" : ""}`}
+                onClick={() => setLobbyTab("leaderboard")}
+              >
+                <Trophy size={16} color="#eab308" />
+                Leaderboard ({leaderboard.length})
+              </button>
+              <button
+                type="button"
+                className={`lobby-tab-btn ${lobbyTab === "matches" ? "active" : ""}`}
+                onClick={() => setLobbyTab("matches")}
+              >
+                <History size={16} color="#3b82f6" />
+                Match Records ({matches.length})
+              </button>
+            </div>
+
+            {/* Tab 1: Leaderboard */}
+            {lobbyTab === "leaderboard" && (
+              <div className="leaderboard-list">
+                {leaderboard.length === 0 ? (
+                  <p
+                    style={{
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                      padding: "24px 0",
+                    }}
+                  >
+                    No players registered in database yet.
+                  </p>
+                ) : (
+                  leaderboard.map((player, idx) => (
+                    <div key={player.username} className="leaderboard-row">
+                      <span className="leaderboard-rank">{idx + 1}</span>
+                      <div className="leaderboard-name">
+                        <div>{player.username}</div>
+                        <div className="leaderboard-stats">
+                          W: {player.wins} | L: {player.losses} | D:{" "}
+                          {player.draws} • Played: {player.gamesPlayed || 0}
+                        </div>
                       </div>
+                      <span className="leaderboard-elo">{player.elo} ELO</span>
                     </div>
-                    <span className="leaderboard-elo">{player.elo} ELO</span>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Tab 2: Match Records */}
+            {lobbyTab === "matches" && (
+              <div className="matches-list">
+                {matches.length === 0 ? (
+                  <p
+                    style={{
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                      padding: "24px 0",
+                    }}
+                  >
+                    No match history recorded yet. Play a game to record the first match!
+                  </p>
+                ) : (
+                  matches.map((m) => {
+                    const isDraw = m.outcome === "draw" || !m.winner;
+                    const dateStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    return (
+                      <div key={m.id} className="match-history-item">
+                        <div className="match-item-header">
+                          <span>{dateStr || "Recent"}</span>
+                          <span className={`match-tag ${isDraw ? "match-tag-draw" : "match-tag-win"}`}>
+                            {isDraw ? "DRAW" : `${m.winner} WON`}
+                          </span>
+                        </div>
+
+                        <div className="match-players-row">
+                          <span className={`match-player red ${m.winner === m.playerRed ? "winner" : ""}`}>
+                            🔴 {m.playerRed}
+                          </span>
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>vs</span>
+                          <span className={`match-player yellow ${m.winner === m.playerYellow ? "winner" : ""}`}>
+                            🟡 {m.playerYellow}
+                          </span>
+                        </div>
+
+                        <div className="match-elo-row">
+                          <span>
+                            {m.playerRed}: {m.eloRedBefore || m.elo_red_before} → <strong>{m.newEloRed || m.new_elo_red}</strong>
+                          </span>
+                          <span>
+                            {m.playerYellow}: {m.eloYellowBefore || m.elo_yellow_before} → <strong>{m.newEloYellow || m.new_elo_yellow}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {/* Database Engine Status Badge */}
+            <div className="db-badge-container">
+              <span>Database Engine</span>
+              <div className="db-badge-pill">
+                <span className="db-badge-dot"></span>
+                <span>{dbInfo ? dbInfo.engine : "PostgreSQL Database"}</span>
+              </div>
             </div>
           </div>
         </div>
